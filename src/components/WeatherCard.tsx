@@ -2,12 +2,13 @@ import { Calendar, Droplets, Eye, Gauge, Wind } from "lucide-react";
 import type { WeatherData } from "../interfaces/weatherData";
 import { useState } from "react";
 import ForecastPopup from "./ForecastPopup";
+import { useWeather } from "../hooks/useWeather";
 
 const WeatherCard = ({ weatherData }: { weatherData: WeatherData | null }) => {
   const [celsiusState, setCelsiusState] = useState<boolean>(true);
   const [showForecast, setShowForecast] = useState<boolean>(false);
-  // then when weatherData loads:
-  const getBackgroundGradient = (description: string) => {
+
+  const getBackgroundGradient = (description: string): string => {
     const desc = description.toLowerCase();
     if (desc.includes("clear")) return "from-blue-400 to-blue-600";
     if (desc.includes("cloud")) return "from-gray-400 to-gray-600";
@@ -17,10 +18,7 @@ const WeatherCard = ({ weatherData }: { weatherData: WeatherData | null }) => {
     return "from-blue-400 to-blue-600";
   };
 
-  const getWeatherIcon = (iconCode: string) => {
-    return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-  };
-
+  const { getWeatherIcon } = useWeather();
   return (
     <>
       <div className="rounded-xl overflow-hidden shadow w-full hover:shadow-lg transition-shadow duration-200">
@@ -40,11 +38,12 @@ const WeatherCard = ({ weatherData }: { weatherData: WeatherData | null }) => {
                 </div>
                 <p className="capitalize">
                   updated
-                  {new Date().toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
+                  {" " +
+                    new Date().toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
                 </p>
                 <div className="flex items-center gap-4">
                   <div className="p-4">
@@ -59,7 +58,10 @@ const WeatherCard = ({ weatherData }: { weatherData: WeatherData | null }) => {
                     <span className="text-3xl font-bold">
                       {celsiusState
                         ? weatherData?.main.temp
-                        : (Number(weatherData?.main.temp) * 9) / 5 + 32}
+                        : (
+                            (Number(weatherData?.main.temp) * 9) / 5 +
+                            32
+                          ).toFixed()}
                       <sup>o</sup>
                       <sub
                         onClick={() => setCelsiusState((prev) => !prev)}
@@ -129,6 +131,7 @@ const WeatherCard = ({ weatherData }: { weatherData: WeatherData | null }) => {
                 </div>
               </div>
               <button
+                onClick={() => setShowForecast(true)}
                 type="button"
                 className="rounded-xl flex gap-3 items-center justify-center cursor-pointer bg-blue-100/70 w-full col-span-2 py-2 text-blue-700  font-semibold capitalize transition-colors duration-200 hover:bg-blue-200"
               >
@@ -140,7 +143,11 @@ const WeatherCard = ({ weatherData }: { weatherData: WeatherData | null }) => {
           <div>loading ...</div>
         )}
       </div>
-      <ForecastPopup />
+      <ForecastPopup
+        showForecast={showForecast}
+        setShowForecast={setShowForecast}
+        country={weatherData?.name as string}
+      />
     </>
   );
 };

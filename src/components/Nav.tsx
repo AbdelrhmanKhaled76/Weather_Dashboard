@@ -1,6 +1,21 @@
 import { Cloud, RefreshCcw } from "lucide-react";
+import { useState } from "react";
 
-const Nav = () => {
+const Nav = ({
+  setRefresh,
+  setSearchCity,
+}: {
+  setRefresh: React.Dispatch<React.SetStateAction<boolean>>;
+  setSearchCity: React.Dispatch<React.SetStateAction<string>>;
+}) => {
+  const [input, setInput] = useState("");
+
+  const handleSearch = () => {
+    if (input.trim()) {
+      setSearchCity(input.trim());
+    }
+  };
+
   return (
     <nav className="w-screen shadow-md py-5">
       <div className="container flex justify-between md:items-center md:flex-row flex-col md:gap-0 gap-5">
@@ -18,10 +33,14 @@ const Nav = () => {
         <div className="flex items-center gap-4">
           <input
             type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             className="border border-black/10 rounded-md px-7 py-2"
             placeholder="⌕ Search for a city..."
           />
           <button
+            onClick={() => setRefresh(true)}
             className="px-3 py-2 bg-blue-600 rounded-lg flex gap-3 text-white cursor-pointer transition-colors duration-200 hover:bg-blue-800"
             type="button"
           >
