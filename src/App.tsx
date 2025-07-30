@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 import Nav from "./components/Nav";
 import WeatherCard from "./components/WeatherCard";
@@ -13,10 +13,13 @@ function App() {
   const [newYork, setNewYork] = useState<WeatherData | null>(null);
   const [tokyo, setTokyo] = useState<WeatherData | null>(null);
   const [sydney, setSydney] = useState<WeatherData | null>(null);
-  const [refresh, setRefresh] = useState<boolean>(false);
-  const [searchCity, setSearchCity] = useState<string>("");
+  const [userLocationWeather, setUserLocationWeather] =
+    useState<WeatherData | null>(null);
 
-  useEffect(() => {
+  const [refresh, setRefresh] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
+  const loadDefaultCountries = useCallback(() => {
     Promise.all([
       fetchingFunc<WeatherData>(NORMAL_URL, "London"),
       fetchingFunc<WeatherData>(NORMAL_URL, "New York"),
@@ -31,26 +34,62 @@ function App() {
       })
       .catch((err) => console.error(err))
       .finally(() => setRefresh(false));
-  }, [refresh]);
+  }, [NORMAL_URL, fetchingFunc]);
 
-  // Optional: fetch data for searchCity (bonus feature)
   useEffect(() => {
-    if (!searchCity) return;
-    fetchingFunc(NORMAL_URL, searchCity).then((data) => {
-      console.log("Search result:", data);
-      // You can also show this as a new card or modal
-    });
-  }, [searchCity]);
+    // Fetch user's current location weather
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        try {
+          const res = await fetch(
+            `${NORMAL_URL}?lat=${lat}&lon=${lon}&appid=${
+              import.meta.env.VITE_API_KEY
+            }&units=metric`
+          );
+          const data: WeatherData = await res.json();
+          setUserLocationWeather(data);
+        } catch (err) {
+          console.error("Error fetching user location weather:", err);
+        }
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+      }
+    );
+
+    loadDefaultCountries();
+  }, [refresh, loadDefaultCountries]);
+  
+  useEffect(() => {
+    if (searchTerm === "") {
+      loadDefaultCountries();
+    }
+  }, [searchTerm, loadDefaultCountries]);
+
+  // Combine all data
+  const allWeatherData = [
+    ...(userLocationWeather ? [userLocationWeather] : []),
+    london,
+    newYork,
+    tokyo,
+    sydney,
+  ].filter(Boolean) as WeatherData[];
+
+  // Filter
+  const filteredData = allWeatherData.filter((item) =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <>
-      <Nav setRefresh={setRefresh} setSearchCity={setSearchCity} />
+      <Nav setRefresh={setRefresh} setSearchCity={setSearchTerm} />
       <main className="container">
         <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5 py-10">
-          <WeatherCard weatherData={london} />
-          <WeatherCard weatherData={newYork} />
-          <WeatherCard weatherData={tokyo} />
-          <WeatherCard weatherData={sydney} />
+          {filteredData.map((data, idx) => (
+            <WeatherCard key={idx} weatherData={data} />
+          ))}
         </div>
       </main>
       <Footer />
